@@ -1,302 +1,248 @@
-# CSMS OCPP 1.6 - Central System Management Software
+# ⚡ Charge-IT: Integrated Smart EV Charging Ecosystem
+*This project is dedicated to fulfillling the requirements of the TF4000 Capstone Design Project Course
 
-## Overview
+> **CSMS (Charging Station Management System) berbasis OCPP 1.6 dengan Hybrid Architecture — Raspberry Pi Edge, Docker Core, Firebase Cloud, dan AI-Ready Analytics.**
 
-This project implements a complete **Central System Management Software (CSMS)** for managing Electric Vehicle (EV) charging stations using the **Open Charge Point Protocol (OCPP) version 1.6**. The system allows Charge Points (CPs) to connect via WebSocket and provides a web-based dashboard for monitoring charging sessions, connector status, and transaction history.
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![OCPP 1.6J](https://img.shields.io/badge/OCPP-1.6J-green.svg)](https://www.openchargealliance.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
+[![TRL](https://img.shields.io/badge/TRL-4--5-orange.svg)](#-current-status)
 
-The architecture follows a microservices approach using Docker containers for easy deployment and scalability.
+---
 
-## Architecture
+## 📋 Table of Contents
 
-The system consists of four main services:
+- [Project Description](#-project-description)
+- [Key Features](#-key-features)
+- [Tech Stack](#-tech-stack)
+- [Current Status](#-current-status)
+- [Project Structure](#-project-structure)
+- [Quick Start](#-quick-start)
+- [Documentation](#-documentation)
+- [Contributors](#-contributors)
 
-### 1. OCPP Server (`ocpp-server`)
-- **Technology**: Python with `websockets` and `ocpp` library
-- **Purpose**: WebSocket server that handles OCPP communication with Charge Points
-- **Port**: 9000
-- **Responsibilities**:
-  - Accepts CP connections via WebSocket (e.g., `ws://localhost:9000/CP_123`)
-  - Processes OCPP messages (BootNotification, Heartbeat, StatusNotification, StartTransaction, etc.)
-  - Stores data in MySQL database
-  - Maintains CP connection status
+---
 
-### 2. API Service (`api-service`)
-- **Technology**: FastAPI (Python)
-- **Purpose**: REST API for data retrieval
-- **Port**: 5050 (external), 8000 (internal)
-- **Endpoints**:
-  - `GET /cps` - List all charge points with connector info and total kWh
-  - `GET /connectors/{cp_id}` - Get connectors for specific CP
-  - `GET /transactions` - Paginated transaction history
+## 🎯 Project Description
 
-### 3. Dashboard (`dashboard`)
-- **Technology**: Flask with Jinja2 templates
-- **Purpose**: Web-based monitoring interface
-- **Port**: 3500
-- **Features**:
-  - Real-time display of CP status and connectivity
-  - Connector status monitoring (Available, Charging, Faulted, etc.)
-  - Transaction history with pagination
-  - Auto-refresh every 5 seconds
+**Charge-IT** is a full-stack, end-to-end prototype for managing Electric Vehicle (EV) charging infrastructure. The system implements the **Open Charge Point Protocol (OCPP) 1.6J** standard to enable standardized communication between Charge Points (hardware) and a Central System (server).
 
-### 4. Database (`db`)
-- **Technology**: MariaDB (MySQL-compatible)
-- **Port**: 3307 (external), 3306 (internal)
-- **Tables**:
-  - `charge_points` - CP information and connection status
-  - `connectors` - Connector status per CP
-  - `transactions` - Charging session records
-  - `users` - User/tag authorization data
+This project was developed as a **revitalization initiative for an existing SPKLU (Stasiun Pengisian Kendaraan Listrik Umum)**, designed to demonstrate a viable architecture for real-world smart charging deployments. It features:
 
-## Database Schema
+- **Edge Computing Layer** — A Raspberry Pi 3B+ acting as a Charge Point Controller with PN532 NFC/RFID reader for user authentication.
+- **Core Infrastructure Layer** — A Docker-containerized backend running on a local laptop, comprising an OCPP WebSocket server, REST API, MariaDB database, Admin Dashboard, and ML microservice.
+- **Cloud Presentation Layer** — Firebase Realtime Database bridging charge point status data to a Netlify-deployed static web application (User-facing HMI).
+- **AI/ML Proof of Concept** — Microservice-based analytics engine providing load forecasting (ARIMA), anomaly detection (Isolation Forest), user clustering (K-Means), and load optimization (Linear Regression).
 
-### charge_points
-| Column | Type | Description |
-|--------|------|-------------|
-| id | VARCHAR(50) PK | Unique CP ID (e.g., CP_123) |
-| vendor | VARCHAR(100) | Manufacturer name |
-| model | VARCHAR(100) | Device model |
-| firmware_version | VARCHAR(100) | Firmware version |
-| last_heartbeat | DATETIME | Last heartbeat timestamp |
-| connected | BOOLEAN | Connection status (1=connected, 0=disconnected) |
-| total_kwh | DECIMAL(10,2) | Accumulated energy consumption |
+The architecture demonstrates a **Hybrid Edge-Core-Cloud model** suitable for environments where full cloud dependency is not feasible (e.g., limited internet connectivity at charging station locations).
 
-### connectors
-| Column | Type | Description |
-|--------|------|-------------|
-| cp_id | VARCHAR(50) FK | Foreign key to charge_points.id |
-| connector_id | INT | Connector number (1, 2, etc.) |
-| status | ENUM | Status (Available, Occupied, Charging, Faulted, etc.) |
-| error_code | VARCHAR(50) | Error code (NoError, GroundFailure, etc.) |
-| last_update | DATETIME | Last status update timestamp |
+---
 
-### transactions
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT AUTO_INCREMENT PK | Transaction ID |
-| cp_id | VARCHAR(50) FK | Associated CP ID |
-| connector_id | INT | Used connector |
-| id_tag | VARCHAR(50) FK | User ID/tag |
-| meter_start | INT | Starting meter reading (Wh) |
-| meter_stop | INT | Ending meter reading (Wh) |
-| start_ts | DATETIME | Transaction start time |
-| stop_ts | DATETIME NULL | Transaction end time |
+## ✨ Key Features
 
-### users
-| Column | Type | Description |
-|--------|------|-------------|
-| id_tag | VARCHAR(50) PK | Unique user identifier |
-| name | VARCHAR(100) | User name |
-| status | ENUM | Authorization status (Accepted, Blocked, Expired) |
-| expiry_date | DATE NULL | ID expiration date |
+| Feature | Description | Status |
+|---|---|---|
+| 🔌 **OCPP 1.6J Compliant** | Full WebSocket-based communication implementing Boot, Heartbeat, Authorize, StartTransaction, MeterValues, StopTransaction, and StatusNotification. | ✅ Operational |
+| 💳 **RFID Authentication** | PN532 NFC/RFID reader on Raspberry Pi for tap-to-charge user authentication via I2C protocol. | ✅ Operational |
+| 🐳 **Dockerized Microservices** | 5-container architecture (OCPP Server, REST API, Dashboard, ML Service, MariaDB) orchestrated via `docker-compose`. | ✅ Operational |
+| 📊 **Real-time Admin Dashboard** | Server-rendered Jinja2 + Tailwind CSS dashboard with 5 views: Dashboard, Stations, Transactions, AI Insights, Settings. | ✅ Operational |
+| ☁️ **Firebase Cloud Bridge** | Raspberry Pi pushes status updates to Firebase Realtime Database; Netlify-hosted user UI reads updates in real-time via Firebase SDK. | ✅ Operational |
+| 📱 **User-facing HMI** | Tailwind CSS static web app deployed on Netlify with QR code access. Shows live charging status (UID, Power, Energy, Duration). | ✅ Operational |
+| 🤖 **AI-Ready Analytics** | ML microservice with ARIMA (load forecasting), Isolation Forest (anomaly detection), K-Means (user segmentation), Linear Regression (load optimization). | ⚠️ PoC (Synthetic Data) |
+| 📈 **Chart.js Visualizations** | Interactive charts: Load Forecast (Line), Availability Prediction (Bar), User Patterns (Scatter), kWh Usage (Bar), Daily Trends (Line), Health Score (Donut). | ✅ Operational |
+| 🔄 **Auto-Reconnect** | Raspberry Pi client implements reconnection loop with 5-second retry interval for resilient field operation. | ✅ Operational |
+| ⚙️ **Settings Panel** | Admin configuration for tariff (IDR/kWh), max grid power limit, maintenance mode toggle, and RFID user management (UI). | ⚠️ UI Only (Dummy Data) |
 
-## Connection Flow
+---
+
+## 🛠 Tech Stack
+
+### Hardware
+| Component | Specification | Role |
+|---|---|---|
+| Raspberry Pi 3B+ | ARM Cortex-A53, 1GB RAM | Edge Charge Point Controller |
+| PN532 NFC/RFID Module | I2C Interface (SDA=GPIO2, SCL=GPIO3) | User Authentication Reader |
+| MiFare Classic Cards | 13.56 MHz, 4-byte UID | User Identification Tokens |
+| Ethernet/USB Tethering | Static IP: `192.168.137.2` | Raspi ↔ Laptop Communication |
+
+### Backend / Core
+| Technology | Version | Purpose |
+|---|---|---|
+| Python | 3.11 | Primary language (all services) |
+| `ocpp` (Python library) | 0.20.0 | OCPP 1.6J message handling |
+| `websockets` | 10.4 | WebSocket server & client |
+| FastAPI | 0.104.1 | REST API & Dashboard framework |
+| Uvicorn | 0.24.0 | ASGI server |
+| MariaDB | 10.6 | Relational database |
+| `aiomysql` | 0.1.1 | Async MySQL driver |
+| Docker & Docker Compose | Latest | Container orchestration |
+
+### AI / Machine Learning
+| Library | Version | Model |
+|---|---|---|
+| scikit-learn | 1.3.2 | Isolation Forest, K-Means, Linear Regression |
+| statsmodels | 0.14.0 | ARIMA Time Series |
+| pandas | 2.1.4 | Data preprocessing |
+
+### Frontend / Presentation
+| Technology | Purpose |
+|---|---|
+| Jinja2 Templates | Server-side rendering (Admin Dashboard) |
+| Tailwind CSS (CDN) | Utility-first CSS framework |
+| Chart.js (CDN) | Interactive data visualizations |
+| Google Material Symbols | Icon system |
+| Firebase Realtime DB | Cloud state synchronization |
+| Firebase JS SDK 10.7.1 | Frontend data binding |
+| Netlify | Static site deployment (User HMI) |
+
+---
+
+## 📌 Current Status
+
+> **Technology Readiness Level (TRL): 4–5 — Component Validation in Lab Environment**
+
+### ✅ What Works
+- Complete OCPP 1.6J lifecycle (Boot → Authorize → Start → Meter → Stop)
+- RFID card tap-to-charge and tap-to-stop with same-card validation
+- Docker multi-container deployment with single `docker-compose up`
+- Admin dashboard with real-time data from MariaDB
+- Firebase real-time sync from Raspberry Pi to User web UI
+- ML model training pipeline (ARIMA, Isolation Forest, K-Means, LR)
+
+### ⚠️ Known Limitations
+- **Local server dependency** — Docker runs on a laptop connected to Raspi via Ethernet/USB; no cloud VPS deployment yet.
+- **Synthetic AI data** — Dashboard AI views use `random.randint()` / `random.uniform()` dummy generators; ML models are trained but dashboard doesn't consume ML API endpoints live.
+- **No TLS/SSL** — All WebSocket (`ws://`) and HTTP communication is unencrypted.
+- **Single-user RFID** — Database has 1 demo user (`DEMO-123`); no dynamic registration flow.
+- **Simulated meter values** — Raspberry Pi sends hardcoded `meter_stop=5000` (5 kWh); no real energy meter integration.
+- **Firebase rules open** — No authentication rules on Firebase Realtime Database.
+
+---
+
+## 📁 Project Structure
 
 ```
-Charge Point (Client) ↔ OCPP Server (WebSocket) ↔ Database
-                              ↓
-API Service (REST) ← Dashboard (Web UI)
+1_CSMS_Server/
+│
+├── 📄 README.md                          # This file
+├── 📄 CSMS-mysql-database-ocpp.sql       # Database schema & seed data
+├── 📄 CSMS-carakerja-ocpp.html           # System workflow documentation
+│
+├── 🔧 rfid_cp_1.py                       # Raspi OCPP Client (RFID only, no Firebase)
+├── 🔧 rfid_cp_1_firebase.py              # Raspi OCPP Client (RFID + Firebase bridge)
+├── 🔧 rfid_cp_1_f2.py                    # Raspi Client v2 (ICS network, enhanced reconnect)
+├── 🧪 client_test.py                     # PC-based OCPP simulator (CP_111)
+├── 🧪 client_test123.py                  # PC-based OCPP simulator (CP_123)
+├── 🧪 test_pn532.py                      # Standalone PN532 hardware test script
+│
+├── 📦 CSMS-server-docker-ocpp/
+│   └── docker-ocpp/                      # 🐳 Docker Infrastructure
+│       ├── docker-compose.yaml           # Full stack (DB + all services)
+│       ├── docker-compose-local.yaml     # Lightweight (external DB)
+│       ├── simulator_cp2.py              # In-container OCPP simulator
+│       ├── CSMS-mysql-database-ocpp.sql/ # SQL init volume mount
+│       │
+│       ├── ocpp-server/                  # 📡 OCPP WebSocket Server (Port 9000)
+│       │   ├── server_ocpp.py            #   Core OCPP 1.6J handler
+│       │   ├── Dockerfile
+│       │   └── requirements.txt
+│       │
+│       ├── api-service/                  # 🔗 REST API Gateway (Port 5050→8000)
+│       │   ├── api.py                    #   FastAPI endpoints (/cps, /transactions, /predict/*)
+│       │   ├── Dockerfile
+│       │   └── requirements.txt
+│       │
+│       ├── dashboard/                    # 📊 Admin Dashboard (Port 3500→8080)
+│       │   ├── app.py                    #   FastAPI + Jinja2 server
+│       │   ├── Dockerfile
+│       │   ├── requirements.txt
+│       │   └── templates/
+│       │       └── dashboard.html        #   Single-page multi-view template (~700 LOC)
+│       │
+│       └── ml-service/                   # 🤖 ML Microservice (Port 8001)
+│           ├── api.py                    #   FastAPI inference endpoints
+│           ├── train.py                  #   Model training script
+│           ├── preprocess.py             #   Data loading & feature engineering
+│           ├── Dockerfile
+│           ├── requirements.txt
+│           └── models/                   #   Serialized .pkl model files
+│               ├── availability_arima.pkl
+│               └── load_lr.pkl
+│
+├── 📦 CSMS-server-docker-ocpp/
+│   └── react-dashboard/                  # 🌐 React Dashboard (Alternative/WIP)
+│       ├── server.js                     #   Express.js API proxy
+│       ├── package.json
+│       └── src/                          #   React + Recharts + Tailwind
+│
+└── 📦 user_ev/                           # 📱 User-Facing HMI (Netlify Deploy)
+    ├── package.json                      #   Tailwind build tooling
+    └── public/
+        ├── index.html                    #   Landing page (QR Code + Instructions)
+        └── connected.html                #   Live charging status (Firebase listener)
 ```
 
-1. **CP Connection**: Charge Points connect to OCPP Server via WebSocket
-2. **Registration**: CP sends BootNotification, server registers/updates CP info
-3. **Heartbeat**: CP sends periodic heartbeats to maintain connection
-4. **Status Updates**: CP reports connector status changes
-5. **Transactions**: CP reports charging session start/stop with meter readings
-6. **Monitoring**: Dashboard queries API Service for real-time data display
+---
 
-## Protocol Details
-
-- **OCPP Version**: 1.6
-- **Transport**: WebSocket with subprotocol `ocpp1.6`
-- **Message Format**: JSON-RPC 2.0
-- **Authentication**: Basic (no encryption in this implementation)
-- **Supported Operations**:
-  - BootNotification
-  - Heartbeat
-  - StatusNotification
-  - Authorize
-  - StartTransaction
-  - StopTransaction
-
-## Installation & Setup
+## 🚀 Quick Start
 
 ### Prerequisites
-- Docker and Docker Compose
-- Python 3.7+ (for simulator only)
+- Docker Desktop (Windows/macOS) or Docker Engine (Linux)
+- Python 3.9+ (for running simulators outside Docker)
+- Git
 
-### Quick Start (Local Database)
-
-1. **Clone/Extract the project**:
-   ```bash
-   # The project is in CSMS-server-docker-ocpp/docker-ocpp/
-   cd CSMS-server-docker-ocpp/docker-ocpp/
-   ```
-
-2. **Start all services**:
-   ```bash
-   docker-compose up --build
-   ```
-
-   This will:
-   - Start MariaDB database with auto-imported schema
-   - Build and start OCPP server
-   - Build and start API service
-   - Build and start dashboard
-
-3. **Access the services**:
-   - **Dashboard**: http://localhost:3500
-   - **API**: http://localhost:5050/docs (FastAPI docs)
-   - **OCPP WebSocket**: ws://localhost:9000/{CP_ID}
-
-### Alternative Setup (External Database)
-
-If you have an external MySQL database (e.g., at 192.168.10.80):
-
+### 1. Clone & Deploy Docker Stack
 ```bash
-docker-compose -f docker-compose-local.yaml up --build
+cd CSMS-server-docker-ocpp/docker-ocpp
+docker-compose up --build -d
 ```
 
-Update environment variables in `docker-compose-local.yaml` for your DB connection.
+### 2. Access Services
+| Service | URL |
+|---|---|
+| Admin Dashboard | http://localhost:3500 |
+| REST API | http://localhost:5050/cps |
+| OCPP WebSocket | ws://localhost:9000/{CP_ID} |
+| ML Service | http://localhost:8001/docs |
 
-### Testing with Simulator
-
-1. **Install dependencies** (outside Docker):
-   ```bash
-   pip install websockets==10.4 ocpp==0.20.0
-   ```
-
-2. **Run simulator**:
-   ```bash
-   python simulator_cp2.py ws://localhost:9000/CP_111
-   ```
-
-   This simulates a complete charging session:
-   - Boot notification
-   - Authorization
-   - Status changes (Available → Preparing → Charging → Finishing → Available)
-   - Transaction recording
-   - Continuous heartbeat
-
-## Operational Flowchart
-
-```
-┌─────────────────┐
-│   Charge Point  │
-│    Powers On    │
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐     WebSocket     ┌─────────────────┐
-│ BootNotification│ ────────────────► │   OCPP Server   │
-│ (vendor, model) │                   │                 │
-└─────────────────┘                   │ - Register CP   │
-          ▲                           │ - Update DB     │
-          │                           └─────────┬───────┘
-          │ Response (Accepted)                 │
-          ▼                                     ▼
-┌─────────────────┐                   ┌─────────────────┐
-│   Heartbeat     │ ◄────────────────► │ Status Updates  │
-│   (every 15s)   │                   │                 │
-└─────────────────┘                   └─────────┬───────┘
-                                                │
-┌─────────────────┐     Authorize      ┌─────────────────┐
-│   User taps     │ ────────────────► │   Check User    │
-│   RFID Card     │                   │   in Database   │
-└─────────────────┘                   └─────────┬───────┘
-                                                │
-┌─────────────────┐     Start/Stop     ┌─────────────────┐
-│ Charging Session│ ◄────────────────► │ Transactions    │
-│ (meter readings)│                   │ - Record kWh    │
-└─────────────────┘                   │ - Calculate cost│
-                                      └─────────┬───────┘
-                                               │
-                                               ▼
-                                    ┌─────────────────┐
-                                    │   Dashboard     │
-                                    │   Monitoring    │
-                                    └─────────────────┘
+### 3. Run Simulator (Test)
+```bash
+pip install websockets==10.4 ocpp==0.20.0
+python client_test.py
 ```
 
-## Usage Instructions
+> For full installation instructions including Raspberry Pi hardware setup, see **[docs/INSTALLATION.md](docs/INSTALLATION.md)**.
 
-### For Users
+---
 
-1. **Access Dashboard**: Open http://localhost:3500 in your browser
-2. **Monitor CPs**: View connected charge points and their status
-3. **Check Connectors**: See real-time connector status (Available, Charging, etc.)
-4. **View Transactions**: Browse charging session history with energy consumption
+## 📚 Documentation
 
-### For Developers
+| Document | Description |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture diagrams, data flow, OCPP protocol details, AI/ML pipeline |
+| [docs/INSTALLATION.md](docs/INSTALLATION.md) | Complete setup guide: hardware wiring, Docker deployment, environment variables |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Current limitations, future roadmap, and 3 major action plans |
 
-1. **API Integration**: Use REST endpoints to integrate with other systems
-2. **Custom Simulator**: Modify `simulator_cp2.py` for testing scenarios
-3. **Database Queries**: Direct access to MySQL for advanced analytics
-4. **Extend OCPP**: Add support for more OCPP operations in `server_ocpp.py`
+---
 
-### For System Administrators
+## 👥 Contributors
 
-1. **Scaling**: Add multiple OCPP server instances behind a load balancer
-2. **Security**: Implement SSL/TLS for WebSocket connections
-3. **Backup**: Regular database backups for transaction history
-4. **Monitoring**: Add logging and alerting for system health
+| Role | Scope |
+|---|---|
+| System Architect | Hybrid Edge-Core-Cloud architecture design |
+| Embedded Developer | Raspberry Pi + PN532 RFID integration |
+| Backend Developer | OCPP Server, FastAPI services, Docker orchestration |
+| Frontend Developer | Admin Dashboard (Tailwind/Jinja2), User HMI (Firebase/Netlify) |
+| ML Engineer | ARIMA, Isolation Forest, K-Means, Linear Regression models |
 
-## Files Structure
+---
 
-```
-CSMS-server-docker-ocpp/docker-ocpp/
-├── docker-compose.yaml          # Local DB setup
-├── docker-compose-local.yaml    # External DB setup
-├── simulator_cp2.py             # CP simulator
-├── cara menjalankan simulator.txt # Simulator instructions
-├── ocpp-server/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── server_ocpp.py           # Main OCPP server
-├── api-service/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── api.py                   # REST API
-├── dashboard/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── app.py                   # Flask dashboard
-│   └── templates/
-│       └── dashboard.html       # Web UI template
-└── CSMS-mysql-database-ocpp.sql # Database schema
-```
+## 📜 License
 
-## Troubleshooting
+This project is developed for academic purposes as part of a final engineering thesis (Tugas Proyek Terpadu — TPT) at Semester 7.
 
-### Common Issues
+---
 
-1. **Port conflicts**: Ensure ports 3307, 9000, 5050, 3500 are available
-2. **Database connection**: Check DB_HOST, DB_USER, DB_PASS in compose files
-3. **Simulator connection**: Verify WebSocket URL format
-4. **Container logs**: Use `docker-compose logs <service>` for debugging
-
-### Logs
-
-- OCPP Server: `docker-compose logs ocpp-server`
-- API Service: `docker-compose logs api-service`
-- Dashboard: `docker-compose logs dashboard`
-- Database: `docker-compose logs db`
-
-## Future Enhancements
-
-- User authentication and authorization
-- Payment integration
-- Real-time notifications
-- Advanced analytics and reporting
-- Support for OCPP 2.0.1
-- Load balancing for multiple servers
-- SSL/TLS encryption
-- REST API authentication
-
-## License
-
-This project is provided as-is for educational and development purposes.
-
-## Contributing
-
-Feel free to submit issues, feature requests, or pull requests to improve the system.
+<p align="center">
+  <b>Charge-IT</b> — Powering the Future of Electric Mobility 🚗⚡
+</p>
