@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charge-IT | Smart CSMS</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        brand: {500: '#6366f1', 600: '#4f46e5'}, // Indigo theme
+                        darkbg: "#0f172a",
+                        cardbg: "#1e293b"
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-rounded { font-size: 20px; }
+        
+        /* Smooth Sidebar Transition */
+        #logo-sidebar { transition: transform 0.3s ease-in-out; }
+        
+        /* Custom Scrollbar for cleaner look */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        
+        /* Utilitas khusus untuk fix scroll */
+        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+    </style>
+</head>
+<body class="bg-darkbg text-gray-200 min-h-screen font-sans overflow-x-hidden">
+
+    <nav class="fixed top-0 z-50 w-full bg-cardbg/90 backdrop-blur-sm border-b border-gray-700/50">
+        <div class="px-3 py-3 lg:px-5 lg:pl-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center justify-start">
+                    <button onclick="toggleSidebar()" type="button" class="inline-flex items-center p-2 text-sm text-gray-400 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                        <span class="material-symbols-rounded">menu</span>
+                    </button>
+                    <a href="/" class="flex ml-4 md:mr-24 items-center gap-3">
+                        <div class="h-8 w-8 bg-brand-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                            <span class="material-symbols-rounded">electric_bolt</span>
+                        </div>
+                        <span class="self-center text-xl font-bold whitespace-nowrap text-white tracking-tight">Charge-IT</span>
+                    </a>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button class="bg-gray-700 hover:bg-gray-600 text-white rounded-lg p-2 transition flex items-center border border-gray-600" onclick="window.location.reload();" title="Refresh Data">
+                        <span class="material-symbols-rounded">refresh</span>
+                    </button>
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-brand-500 to-purple-500 border-2 border-white/20 shadow-md"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-cardbg border-r border-gray-700 shadow-xl flex flex-col" aria-label="Sidebar">
+    
+    <div class="px-4 pb-4 overflow-y-auto flex-1">
+        
+        <h3 class="px-4 mb-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Navigation
+        </h3>
+
+        <ul class="space-y-1 font-medium">
+            <li>
+                <a href="/?view=dashboard" class="flex items-center px-4 py-3 rounded-xl group transition-all duration-200 {{ 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' if view == 'dashboard' else 'text-gray-400 hover:bg-gray-700/50 hover:text-white' }}">
+                    <span class="material-symbols-rounded {{ 'text-white' if view == 'dashboard' else 'text-gray-400 group-hover:text-white' }}">
+                        dashboard
+                    </span>
+                    <span class="ml-3 font-medium">Dashboard</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/?view=stations" class="flex items-center px-4 py-3 rounded-xl group transition-all duration-200 {{ 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' if view == 'stations' else 'text-gray-400 hover:bg-gray-700/50 hover:text-white' }}">
+                    <span class="material-symbols-rounded {{ 'text-white' if view == 'stations' else 'text-gray-400 group-hover:text-white' }}">
+                        ev_station
+                    </span>
+                    <span class="ml-3 font-medium">Charging Stations</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/?view=transactions" class="flex items-center px-4 py-3 rounded-xl group transition-all duration-200 {{ 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' if view == 'transactions' else 'text-gray-400 hover:bg-gray-700/50 hover:text-white' }}">
+                    <span class="material-symbols-rounded {{ 'text-white' if view == 'transactions' else 'text-gray-400 group-hover:text-white' }}">
+                        receipt_long
+                    </span>
+                    <span class="ml-3 font-medium">Transactions</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/?view=ai_insights" class="flex items-center px-4 py-3 rounded-xl group transition-all duration-200 {{ 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' if view == 'ai_insights' else 'text-gray-400 hover:bg-gray-700/50 hover:text-white' }}">
+                    <span class="material-symbols-rounded {{ 'text-white' if view == 'ai_insights' else 'text-gray-400 group-hover:text-white' }}">
+                        psychology
+                    </span>
+                    <span class="ml-3 font-medium">AI Insights</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/?view=settings" class="flex items-center px-4 py-3 rounded-xl group transition-all duration-200 {{ 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' if view == 'settings' else 'text-gray-400 hover:bg-gray-700/50 hover:text-white' }}">
+                    <span class="material-symbols-rounded {{ 'text-white' if view == 'settings' else 'text-gray-400 group-hover:text-white' }}">
+                        settings
+                    </span>
+                    <span class="ml-3 font-medium">Settings</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="p-4 mt-auto">
+        <div class="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 backdrop-blur-sm">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wide">
+                System Status
+            </h4>
+            <div class="flex items-center gap-3">
+                <span class="relative flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span class="text-sm font-medium text-gray-200">
+                    All systems operational
+                </span>
+            </div>
+        </div>
+    </div>
+
+    </aside>
+
+    <div class="p-4 sm:ml-0 transition-all duration-300 pt-20" id="main-content">
+        
+        {% if view == 'dashboard' %}
+        <div class="fade-in max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div class="flex items-center p-5 bg-cardbg rounded-xl shadow-lg border border-gray-700/50 hover:border-brand-500/30 transition">
+                    <div class="h-12 w-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mr-4">
+                        <span class="material-symbols-rounded text-3xl">dns</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-400">Total Charge Points</p>
+                        <p class="text-3xl font-bold text-white tracking-tight">{{ stats.total_cps }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center p-5 bg-cardbg rounded-xl shadow-lg border border-gray-700/50 hover:border-brand-500/30 transition">
+                    <div class="h-12 w-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mr-4">
+                        <span class="material-symbols-rounded text-3xl">power</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-400">Active Sessions</p>
+                        <p class="text-3xl font-bold text-white tracking-tight">{{ stats.active_sessions }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center p-5 bg-cardbg rounded-xl shadow-lg border border-gray-700/50 hover:border-brand-500/30 transition">
+                    <div class="h-12 w-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mr-4">
+                        <span class="material-symbols-rounded text-3xl">offline_bolt</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-400">Total Energy</p>
+                        <p class="text-3xl font-bold text-white tracking-tight">{{ stats.total_energy }} <span class="text-sm text-gray-500 font-normal">kWh</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                
+                <div class="bg-cardbg p-5 rounded-xl border border-gray-700/50 shadow-lg flex flex-col">
+                    <div class="flex justify-between mb-4">
+                        <h3 class="font-semibold text-gray-200 flex items-center gap-2">
+                            <span class="material-symbols-rounded text-purple-400">show_chart</span> Load Forecast
+                        </h3>
+                    </div>
+                    <div class="h-56 flex-1">
+                        <canvas id="loadChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center border-t border-gray-700 pt-2">
+                        Predicted power usage (kW) for the next 24 hours.
+                    </p>
+                </div>
+
+                <div class="bg-cardbg p-5 rounded-xl border border-gray-700/50 shadow-lg flex flex-col">
+                    <div class="flex justify-between mb-4">
+                        <h3 class="font-semibold text-gray-200 flex items-center gap-2">
+                            <span class="material-symbols-rounded text-green-400">health_and_safety</span> System Health
+                        </h3>
+                    </div>
+                    <div class="flex items-center justify-center h-40 flex-1">
+                         <div class="text-center relative">
+                            <svg class="w-32 h-32 transform -rotate-90">
+                                <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-700" />
+                                <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="transparent" class="text-green-500 shadow-[0_0_15px_rgba(74,222,128,0.5)]" stroke-dasharray="{{ smart.health_status.score * 3.51 }} 351" stroke-linecap="round" />
+                            </svg>
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <span class="text-4xl font-bold text-white block">{{ smart.health_status.score }}%</span>
+                            </div>
+                         </div>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-400 space-y-1">
+                        <p class="font-semibold text-gray-300">Score Parameter:</p>
+                        <ul class="list-disc pl-4 space-y-0.5">
+                            <li>Latency Heartbeat < 500ms</li>
+                            <li>Error Logs (24h) = 0</li>
+                            <li>Voltage Stability</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg p-5 rounded-xl border border-gray-700/50 shadow-lg flex flex-col">
+                    <div class="flex justify-between mb-4">
+                        <h3 class="font-semibold text-gray-200 flex items-center gap-2">
+                            <span class="material-symbols-rounded text-blue-400">event_available</span> Availability
+                        </h3>
+                    </div>
+                    <div class="h-56 flex-1">
+                        <canvas id="availChart"></canvas>
+                    </div>
+                     <p class="text-xs text-gray-500 mt-2 text-center border-t border-gray-700 pt-2">
+                        Probability (%) of finding a free spot over next 7 days.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="bg-cardbg rounded-xl border border-gray-700/50 overflow-hidden shadow-lg">
+                <div class="p-4 border-b border-gray-700/50 flex justify-between items-center bg-gray-800/30">
+                    <h3 class="font-bold text-white">Live Charge Points</h3>
+                    <a href="/?view=stations" class="text-sm text-brand-500 hover:text-brand-400 font-medium">View All</a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-900/50">
+                            <tr>
+                                <th class="px-6 py-3">CP ID</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3 text-right">Usage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cp in cps[:3] %}
+                            <tr class="border-b border-gray-700/50 hover:bg-gray-800/50 transition">
+                                <td class="px-6 py-4 font-medium text-white">{{ cp.id }}</td>
+                                <td class="px-6 py-4">
+                                    {% if cp.connected %}
+                                        <span class="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs border border-green-500/20 font-medium">Online</span>
+                                    {% else %}
+                                        <span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 text-xs border border-red-500/20 font-medium">Offline</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-right">{{ "%.1f"|format(cp.total_kwh|float) }} kWh</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+
+        {% if view == 'transactions' %}
+        <div class="fade-in max-w-7xl mx-auto">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <span class="p-2 rounded-xl bg-brand-500/20 text-brand-400 border border-brand-500/20"><span class="material-symbols-rounded">receipt_long</span></span>
+                Transaction Analytics
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-cardbg p-6 rounded-xl border border-gray-700/50 shadow-lg">
+                    <h3 class="text-gray-300 mb-4 font-medium flex items-center gap-2">
+                        <span class="w-2 h-6 bg-brand-500 rounded-full"></span> Total Usage per Station
+                    </h3>
+                    <div class="h-64"><canvas id="kwhBarChart"></canvas></div>
+                </div>
+                <div class="bg-cardbg p-6 rounded-xl border border-gray-700/50 shadow-lg">
+                    <h3 class="text-gray-300 mb-4 font-medium flex items-center gap-2">
+                        <span class="w-2 h-6 bg-emerald-500 rounded-full"></span> Daily Usage Trend
+                    </h3>
+                    <div class="h-64"><canvas id="dailyLineChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="bg-cardbg rounded-xl border border-gray-700/50 overflow-hidden shadow-lg">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-900/50">
+                            <tr>
+                                <th class="px-6 py-4">Tx ID</th>
+                                <th class="px-6 py-4">CP ID</th>
+                                <th class="px-6 py-4">ID Tag</th>
+                                <th class="px-6 py-4">Start</th>
+                                <th class="px-6 py-4">Stop</th>
+                                <th class="px-6 py-4 text-right">Energy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in txs %}
+                            <tr class="border-b border-gray-700/50 hover:bg-gray-800/50 transition">
+                                <td class="px-6 py-4 text-white">#{{ tx.id }}</td>
+                                <td class="px-6 py-4 font-medium text-blue-300">{{ tx.cp_id }}</td>
+                                <td class="px-6 py-4"><span class="font-mono text-xs bg-gray-800 px-2 py-1 rounded border border-gray-700">{{ tx.id_tag }}</span></td>
+                                <td class="px-6 py-4 text-xs">{{ tx.start_ts }}</td>
+                                <td class="px-6 py-4 text-xs">{{ tx.stop_ts or '-' }}</td>
+                                <td class="px-6 py-4 text-right font-medium text-emerald-400">
+                                    {% if tx.meter_stop and tx.meter_start %}
+                                        {{ "%.2f"|format((tx.meter_stop - tx.meter_start) / 1000) }} kWh
+                                    {% else %}
+                                        <span class="text-yellow-500 italic">Charging</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not txs %}
+                            <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No transactions found.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-4 border-t border-gray-700/50 flex justify-between items-center bg-gray-800/20">
+                    <span class="text-xs text-gray-500">Page {{ page }} showing max {{ limit }} rows</span>
+                    <div class="flex gap-2">
+                        {% if page > 1 %}
+                        <a href="/?view=transactions&page={{ page-1 }}" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-xs text-white transition">Prev</a>
+                        {% endif %}
+                        <a href="/?view=transactions&page={{ page+1 }}" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-xs text-white transition">Next</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+
+        {% if view == 'stations' %}
+        <div class="fade-in max-w-7xl mx-auto">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <span class="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/20"><span class="material-symbols-rounded">ev_station</span></span>
+                Station Analytics
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 h-auto lg:h-[450px]">
+                
+                <div class="lg:col-span-2 bg-cardbg p-6 rounded-xl border border-gray-700/50 shadow-lg flex flex-col h-full">
+                    <h3 class="text-gray-300 mb-4 font-medium flex items-center gap-2">
+                        <span class="material-symbols-rounded text-sm text-blue-400">schedule</span> User Charging Patterns
+                    </h3>
+                    <div class="flex-1 min-h-0 relative">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg rounded-xl border border-gray-700/50 flex flex-col h-full shadow-lg overflow-hidden relative group">
+                    <div class="p-5 border-b border-gray-700/50 bg-gray-800/20 backdrop-blur-sm z-20 shrink-0">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-gray-200 font-semibold flex items-center gap-2">
+                                <span class="p-1.5 rounded-md bg-blue-500/10 text-blue-400">
+                                    <span class="material-symbols-rounded text-sm">bar_chart</span>
+                                </span>
+                                Load
+                            </h3>
+                            <span class="text-[10px] font-mono text-gray-500 bg-gray-800 px-2 py-1 rounded border border-gray-700 whitespace-nowrap">Max: 500 kWh</span>
+                        </div>
+                    </div>
+
+                    <div class="p-5 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar space-y-5 relative w-full">
+                         <div class="absolute inset-0 pointer-events-none opacity-10 w-full h-full z-0">
+                             <div class="h-full w-px border-r border-dashed border-gray-400 absolute left-[75%] top-0"></div>
+                             <div class="h-full w-px border-r border-dashed border-gray-400 absolute left-[90%] top-0"></div>
+                        </div>
+
+                        {% for cp in cps %}
+                        {% set max_cap = 500.0 %}
+                        {% set usage = cp.total_kwh|float %}
+                        {% set pct = (usage / max_cap) * 100 %}
+                        {% if pct >= 90 %}
+                            {% set bar_color = "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_10px_rgba(244,63,94,0.5)]" %}
+                            {% set text_color = "text-red-400" %}
+                        {% elif pct >= 75 %}
+                            {% set bar_color = "bg-gradient-to-r from-amber-400 to-orange-500" %}
+                            {% set text_color = "text-amber-400" %}
+                        {% else %}
+                            {% set bar_color = "bg-gradient-to-r from-blue-500 to-indigo-500" %}
+                            {% set text_color = "text-blue-400" %}
+                        {% endif %}
+
+                        <div class="relative z-10 w-full">
+                            <div class="flex justify-between items-end mb-2 w-full">
+                                <div class="flex items-center gap-2 min-w-0 flex-1">
+                                    <div class="h-8 w-8 rounded bg-gray-800 flex shrink-0 items-center justify-center border border-gray-700/50 text-gray-400">
+                                        <span class="material-symbols-rounded text-base">ev_charger</span>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-white tracking-wide truncate" title="{{ cp.id }}">{{ cp.id }}</div>
+                                        <div class="text-[10px] text-gray-500 uppercase font-semibold tracking-wider truncate" title="{{ cp.vendor }}">{{ cp.vendor }}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0 ml-2">
+                                    <span class="text-sm font-bold {{ text_color }}">{{ "%.1f"|format(usage) }}</span>
+                                </div>
+                            </div>
+                            <div class="relative w-full h-2.5 bg-gray-900/50 rounded-full overflow-hidden border border-gray-700/30">
+                                <div class="absolute top-0 bottom-0 w-px bg-amber-500/50 border-r border-dashed border-amber-500/80 left-[75%] z-20"></div>
+                                <div class="absolute top-0 bottom-0 w-px bg-red-500/50 border-r border-dashed border-red-500/80 left-[90%] z-20"></div>
+                                <div class="h-full rounded-full transition-all duration-1000 ease-out {{ bar_color }}" style="width: {{ pct if pct <= 100 else 100 }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="p-3 bg-gray-800/30 border-t border-gray-700/50 backdrop-blur text-[10px] sm:text-xs flex justify-between items-center text-gray-400 px-5 shrink-0 z-20">
+                        <span class="hidden sm:inline">Limits:</span>
+                        <div class="flex gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>OK</div>
+                            <div class="flex items-center gap-1"><span class="w-px h-2.5 bg-amber-500 border-r border-dashed border-amber-500"></span><span class="text-amber-500">75%</span></div>
+                            <div class="flex items-center gap-1"><span class="w-px h-2.5 bg-red-500 border-r border-dashed border-red-500"></span><span class="text-red-500">90%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {% for cp in cps[:3] %}
+                <div class="bg-cardbg p-5 rounded-xl border border-gray-700/50 hover:border-gray-500 transition shadow-lg">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                             <div class="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">
+                                <span class="material-symbols-rounded text-gray-400">power</span>
+                             </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white">{{ cp.id }}</h4>
+                                <p class="text-xs text-gray-500">{{ cp.vendor }}</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 rounded-md text-xs font-medium border {{ 'bg-green-500/10 text-green-400 border-green-500/20' if cp.connected else 'bg-red-500/10 text-red-400 border-red-500/20' }}">
+                            {{ 'Online' if cp.connected else 'Offline' }}
+                        </span>
+                    </div>
+                    <div class="space-y-2">
+                        {% for conn in connectors_by_cp[cp.id] %}
+                        <div class="flex justify-between items-center p-2.5 bg-gray-800/40 rounded-lg border border-gray-700/30">
+                            <span class="text-xs text-gray-400 font-mono">#{{ conn.connector_id }}</span>
+                            {% if conn.status == 'Available' %}
+                                <span class="text-xs flex items-center gap-1.5 text-blue-400"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> Available</span>
+                            {% elif conn.status == 'Charging' %}
+                                <span class="text-xs flex items-center gap-1.5 text-green-400 font-bold"><span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Charging</span>
+                            {% else %}
+                                <span class="text-xs flex items-center gap-1.5 text-yellow-400">{{ conn.status }}</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% if not connectors_by_cp[cp.id] %}
+                            <p class="text-xs text-gray-600 text-center italic py-2">No connectors data</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="bg-cardbg rounded-xl border border-gray-700/50 overflow-hidden shadow-lg">
+                <div class="p-5 border-b border-gray-700/50 flex justify-between items-center bg-gray-800/30">
+                    <h3 class="font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-rounded text-gray-400">list</span> 
+                        List of Charge Points
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-900/50">
+                            <tr>
+                                <th class="px-6 py-4">CP ID</th>
+                                <th class="px-6 py-4">Vendor / Model</th>
+                                <th class="px-6 py-4">Firmware</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4">Last Heartbeat</th>
+                                <th class="px-6 py-4 text-right">Total Usage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cp in table_cps %}
+                            <tr class="border-b border-gray-700/50 hover:bg-gray-800/50 transition">
+                                <td class="px-6 py-4 font-medium text-white">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-8 w-8 rounded bg-gray-700 flex items-center justify-center text-gray-300">
+                                            <span class="material-symbols-rounded text-lg">charging_station</span>
+                                        </div>
+                                        {{ cp.id }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-white">{{ cp.vendor or 'Unknown' }}</span>
+                                        <span class="text-xs text-gray-500">{{ cp.model or '-' }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 font-mono text-xs text-gray-400">{{ cp.firmware_version or 'v1.0' }}</td>
+                                <td class="px-6 py-4">
+                                    {% if cp.connected %}
+                                        <span class="inline-flex items-center bg-green-900/30 text-green-400 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-700/50">
+                                            Online
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center bg-red-900/30 text-red-400 text-xs font-medium px-2.5 py-0.5 rounded-full border border-red-700/50">
+                                            Offline
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-gray-500 text-xs">{{ cp.last_heartbeat or 'Never' }}</td>
+                                <td class="px-6 py-4 text-right font-medium text-blue-400">{{ "%.2f"|format(cp.total_kwh|float) }} kWh</td>
+                            </tr>
+                            {% endfor %}
+                            {% if not table_cps %}
+                            <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No charge points found.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="p-4 border-t border-gray-700/50 flex justify-between items-center bg-gray-800/20">
+                    <span class="text-xs text-gray-500">
+                        Page {{ page }} of {{ ((stats.total_cps - 1) // limit) + 1 }}
+                    </span>
+                    <div class="flex gap-2">
+                        {% if page > 1 %}
+                        <a href="/?view=stations&page={{ page-1 }}" class="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-xs text-white transition">
+                            <span class="material-symbols-rounded text-sm">chevron_left</span> Prev
+                        </a>
+                        {% endif %}
+                        
+                        {% if stats.total_cps > page * limit %}
+                        <a href="/?view=stations&page={{ page+1 }}" class="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-xs text-white transition">
+                            Next <span class="material-symbols-rounded text-sm">chevron_right</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        {% endif %}
+
+      {% if view == 'ai_insights' %}
+        <div class="fade-in max-w-7xl mx-auto space-y-8">
+            
+            <div>
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <span class="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/20">
+                        <span class="material-symbols-rounded">psychology</span>
+                    </span>
+                    AI & Predictive Analytics
+                </h2>
+                <p class="text-gray-400 mt-2 ml-14 text-sm">
+                    Analisis mendalam menggunakan model Machine Learning untuk prediksi beban, kesehatan sistem, dan optimasi ketersediaan.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <div class="bg-cardbg rounded-xl border border-gray-700/50 shadow-lg p-6 lg:col-span-2">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <span class="w-1.5 h-6 bg-purple-500 rounded-full"></span>
+                                24-Hour Load Forecasting
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-1">Model memprediksi lonjakan beban listrik untuk mencegah overload grid.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full border border-purple-500/20 font-mono">Model: LSTM-RNN</span>
+                            <span class="px-3 py-1 bg-gray-700 text-gray-300 text-xs rounded-full border border-gray-600 font-mono">Accuracy: 94.2%</span>
+                        </div>
+                    </div>
+                    <div class="h-80 w-full">
+                        <canvas id="aiLoadChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-700/50">
+                        <div class="text-center">
+                            <p class="text-xs text-gray-500">Predicted Peak</p>
+                            <p class="text-xl font-bold text-white">14:00 <span class="text-sm font-normal text-purple-400">(45 kW)</span></p>
+                        </div>
+                        <div class="text-center border-l border-gray-700/50">
+                            <p class="text-xs text-gray-500">Grid Strain Risk</p>
+                            <p class="text-xl font-bold text-green-400">Low</p>
+                        </div>
+                        <div class="text-center border-l border-gray-700/50">
+                            <p class="text-xs text-gray-500">Confidence Interval</p>
+                            <p class="text-xl font-bold text-white">± 2.5 kW</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg rounded-xl border border-gray-700/50 shadow-lg p-6 flex flex-col">
+                    <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-6 bg-green-500 rounded-full"></span>
+                        Anomaly Detection & Health
+                    </h3>
+                    <div class="flex flex-col md:flex-row items-center gap-8 flex-1">
+                        <div class="relative w-40 h-40 shrink-0">
+                            <canvas id="aiHealthChart"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center flex-col">
+                                <span class="text-3xl font-bold text-white">{{ smart.health_status.score }}%</span>
+                                <span class="text-[10px] text-gray-400 uppercase tracking-wider">Health</span>
+                            </div>
+                        </div>
+                        <div class="w-full space-y-4">
+                            <div class="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-400">Heartbeat Latency</span>
+                                    <span class="text-green-400 font-mono">24ms (Avg)</span>
+                                </div>
+                                <div class="w-full bg-gray-700 h-1.5 rounded-full"><div class="bg-green-500 h-1.5 rounded-full" style="width: 95%"></div></div>
+                            </div>
+                            <div class="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-400">Error Rate (24h)</span>
+                                    <span class="text-blue-400 font-mono">0.01%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 h-1.5 rounded-full"><div class="bg-blue-500 h-1.5 rounded-full" style="width: 99%"></div></div>
+                            </div>
+                            {% if smart.health_status.anomalies %}
+                            <div class="p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-300 flex items-start gap-2">
+                                <span class="material-symbols-rounded text-sm mt-0.5">warning</span>
+                                <div>
+                                    <span class="font-bold">Detected Anomaly:</span>
+                                    {{ smart.health_status.anomalies[0].issue }} on {{ smart.health_status.anomalies[0].device }}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="p-2 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-300 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-sm">check_circle</span>
+                                No critical anomalies detected in the last 24h.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg rounded-xl border border-gray-700/50 shadow-lg p-6 flex flex-col">
+                    <div class="flex justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <span class="w-1.5 h-6 bg-blue-500 rounded-full"></span>
+                            Smart Availability Forecast
+                        </h3>
+                         <span class="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20 font-mono">Model: Bayesian Reg</span>
+                    </div>
+                    <div class="h-48 w-full flex-1">
+                        <canvas id="aiAvailChart"></canvas>
+                    </div>
+                    <div class="mt-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700/50">
+                        <h4 class="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                            <span class="material-symbols-rounded text-amber-400 text-base">lightbulb</span> AI Recommendation
+                        </h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">
+                            Berdasarkan pola penggunaan historis, disarankan untuk menjadwalkan 
+                            <span class="text-white font-medium">Maintenance Rutin</span> pada hari 
+                            <span class="text-blue-400 font-bold">Minggu</span> atau 
+                            <span class="text-blue-400 font-bold">Senin</span> 
+                            karena probabilitas penggunaan user paling rendah (Predicted occupancy < 30%).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-700 pt-8">
+                <h3 class="text-xl font-bold text-white mb-6">Technical Methodology & Data Processing</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="group relative p-6 bg-cardbg rounded-xl border border-gray-700 hover:border-brand-500/50 transition duration-300">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+                            <span class="material-symbols-rounded text-6xl text-brand-500">query_stats</span>
+                        </div>
+                        <h4 class="text-brand-400 font-bold mb-2">1. Load Forecasting Engine</h4>
+                        <p class="text-xs text-gray-500 mb-3 font-mono">Input: Historical MeterValues (kWh)</p>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            Sistem menggunakan data <strong>Time-Series</strong> dari tabel transaksi. Data dibersihkan (denoising) dan diproses menggunakan algoritma sliding window. Model memprediksi beban grid dengan mempertimbangkan tren harian (jam sibuk) dan musiman.
+                        </p>
+                    </div>
+
+                    <div class="group relative p-6 bg-cardbg rounded-xl border border-gray-700 hover:border-green-500/50 transition duration-300">
+                         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+                            <span class="material-symbols-rounded text-6xl text-green-500">monitor_heart</span>
+                        </div>
+                        <h4 class="text-green-400 font-bold mb-2">2. Anomaly Detection</h4>
+                        <p class="text-xs text-gray-500 mb-3 font-mono">Input: ErrorCodes, Heartbeat Logs</p>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            Menggunakan algoritma <strong>Isolation Forest</strong> (Unsupervised Learning) untuk mendeteksi outlier. Jika latensi heartbeat atau frekuensi error melebihi threshold deviasi standar, sistem menurunkan Health Score secara real-time.
+                        </p>
+                    </div>
+
+                    <div class="group relative p-6 bg-cardbg rounded-xl border border-gray-700 hover:border-blue-500/50 transition duration-300">
+                         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+                            <span class="material-symbols-rounded text-6xl text-blue-500">calendar_month</span>
+                        </div>
+                        <h4 class="text-blue-400 font-bold mb-2">3. Probabilistic Availability</h4>
+                        <p class="text-xs text-gray-500 mb-3 font-mono">Input: Session Start/Stop Times</p>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            Menghitung probabilitas slot kosong menggunakan distribusi statistik (Bayesian Inference) berdasarkan hari dalam seminggu. Ini membantu user memilih waktu charging yang optimal dan membantu operator dalam load balancing.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        {% endif %}
+        
+        {% if view == 'settings' %}
+        <div class="fade-in max-w-7xl mx-auto space-y-8">
+            
+            <div>
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <span class="p-2 rounded-xl bg-gray-700 text-gray-300 border border-gray-600">
+                        <span class="material-symbols-rounded">settings</span>
+                    </span>
+                    System Configuration
+                </h2>
+                <p class="text-gray-400 mt-2 ml-14 text-sm">
+                    Manage admin profile, SPKLU pricing, and RFID user access control.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <div class="space-y-8">
+                    
+                    <div class="bg-cardbg rounded-xl border border-gray-700/50 shadow-lg overflow-hidden">
+                        <div class="p-5 border-b border-gray-700/50 bg-gray-800/30">
+                            <h3 class="font-bold text-white flex items-center gap-2">
+                                <span class="material-symbols-rounded text-brand-400">manage_accounts</span>
+                                Admin Profile
+                            </h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div class="h-16 w-16 rounded-full bg-gradient-to-tr from-brand-500 to-purple-500 border-2 border-white/20 shadow-md"></div>
+                                <div>
+                                    <h4 class="text-white font-semibold">Super Admin</h4>
+                                    <p class="text-xs text-gray-500">admin@evnexus.id</p>
+                                    <span class="px-2 py-0.5 mt-1 rounded text-[10px] bg-green-500/10 text-green-400 border border-green-500/20">Verified</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-400">Display Name</label>
+                                <input type="text" value="Super Admin" class="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full p-2.5 placeholder-gray-400">
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-400">Email Address</label>
+                                <input type="email" value="admin@evnexus.id" class="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full p-2.5 placeholder-gray-400" disabled>
+                            </div>
+                            <button class="w-full text-white bg-brand-600 hover:bg-brand-700 focus:ring-4 focus:ring-brand-800 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 focus:outline-none transition">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-cardbg rounded-xl border border-gray-700/50 shadow-lg overflow-hidden">
+                        <div class="p-5 border-b border-gray-700/50 bg-gray-800/30 flex justify-between items-center">
+                            <h3 class="font-bold text-white flex items-center gap-2">
+                                <span class="material-symbols-rounded text-amber-400">tune</span>
+                                SPKLU Settings
+                            </h3>
+                        </div>
+                        <div class="p-6 space-y-5">
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-400">Tariff per kWh (IDR)</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <span class="text-gray-500 font-bold">Rp</span>
+                                    </div>
+                                    <input type="number" value="{{ settings.config.price_per_kwh }}" class="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full pl-10 p-2.5" placeholder="2466">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-400">Max Grid Power Limit (Watt)</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="range" min="10000" max="50000" value="{{ settings.config.max_power_limit }}" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                    <span class="text-sm text-white font-mono bg-gray-700 px-2 py-1 rounded">{{ settings.config.max_power_limit }}W</span>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Limits total load to prevent grid trip.</p>
+                            </div>
+                            <div class="flex items-center justify-between p-3 border border-gray-700 rounded-lg bg-gray-800/50">
+                                <div>
+                                    <span class="text-sm font-medium text-white block">Maintenance Mode</span>
+                                    <span class="text-xs text-gray-500">Disable all chargers</span>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" value="" class="sr-only peer" {{ 'checked' if settings.config.maintenance_mode }}>
+                                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <div class="bg-cardbg rounded-xl border border-gray-700/50 shadow-lg overflow-hidden flex flex-col h-full">
+                        
+                        <div class="p-5 border-b border-gray-700/50 bg-gray-800/30 flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-white flex items-center gap-2">
+                                    <span class="material-symbols-rounded text-blue-400">badge</span>
+                                    Registered RFID Users
+                                </h3>
+                                <p class="text-xs text-gray-500 mt-1">Manage access control and authentication.</p>
+                            </div>
+                            <button class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-xs px-4 py-2 flex items-center gap-2 transition">
+                                <span class="material-symbols-rounded text-sm">add</span> Add User
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto flex-1">
+                            <table class="w-full text-sm text-left text-gray-400">
+                                <thead class="text-xs text-gray-500 uppercase bg-gray-900/50">
+                                    <tr>
+                                        <th class="px-6 py-3">User Info</th>
+                                        <th class="px-6 py-3">RFID Tag</th>
+                                        <th class="px-6 py-3">Balance</th>
+                                        <th class="px-6 py-3">Status</th>
+                                        <th class="px-6 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in settings.users %}
+                                    <tr class="border-b border-gray-700/50 hover:bg-gray-800/50 transition group">
+                                        <td class="px-6 py-4 font-medium text-white flex items-center gap-3">
+                                            <div class="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-300 font-bold border border-gray-600">
+                                                {{ user.name[0] }}
+                                            </div>
+                                            <div>
+                                                <div>{{ user.name }}</div>
+                                                <div class="text-xs text-gray-500">Exp: {{ user.expiry }}</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="font-mono text-xs bg-gray-800 px-2 py-1 rounded border border-gray-700 text-blue-300">
+                                                {{ user.id_tag }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            Rp {{ "{:,}".format(user.balance) }}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            {% if user.status == 'Active' %}
+                                                <span class="inline-flex items-center bg-green-900/30 text-green-400 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-700/50">
+                                                    Active
+                                                </span>
+                                            {% else %}
+                                                <span class="inline-flex items-center bg-red-900/30 text-red-400 text-xs font-medium px-2.5 py-0.5 rounded-full border border-red-700/50">
+                                                    Blocked
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <div class="flex justify-end gap-2">
+                                                <button class="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-700 transition" title="Edit">
+                                                    <span class="material-symbols-rounded text-lg">edit</span>
+                                                </button>
+                                                {% if user.status == 'Active' %}
+                                                <div class="relative group/tooltip">
+                                                    <button class="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-900/30 border border-transparent hover:border-red-800 transition flex items-center gap-1">
+                                                        <span class="material-symbols-rounded text-lg">block</span>
+                                                        <span class="text-[10px] font-bold bg-purple-600/20 text-purple-300 px-1 rounded border border-purple-500/30">BETA</span>
+                                                    </button>
+                                                    <div class="absolute bottom-full right-0 mb-2 hidden group-hover/tooltip:block w-48 p-2 bg-gray-900 text-xs text-gray-300 rounded border border-gray-700 shadow-xl z-50">
+                                                        Block access immediately (Beta: May take up to 60s to propagate to CP).
+                                                    </div>
+                                                </div>
+                                                {% else %}
+                                                <button class="text-green-400 hover:text-green-300 p-1 rounded hover:bg-green-900/30 border border-transparent hover:border-green-800 transition" title="Unblock">
+                                                    <span class="material-symbols-rounded text-lg">check_circle</span>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="p-4 border-t border-gray-700/50 bg-gray-800/20 text-xs text-gray-500 flex justify-between">
+                            <span>Showing {{ settings.users|length }} registered users</span>
+                            <span class="flex items-center gap-1 text-purple-400">
+                                <span class="material-symbols-rounded text-sm">science</span>
+                                Beta features are experimental.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // --- Sidebar Logic ---
+        const sidebar = document.getElementById('logo-sidebar');
+        const mainContent = document.getElementById('main-content');
+        
+        function toggleSidebar() {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                // Open
+                sidebar.classList.remove('-translate-x-full');
+                if (window.innerWidth >= 640) {
+                    mainContent.classList.add('ml-64');
+                }
+            } else {
+                // Close
+                sidebar.classList.add('-translate-x-full');
+                mainContent.classList.remove('ml-64');
+            }
+        }
+
+        // --- Chart Logic based on Views ---
+        
+        // 1. DASHBOARD VIEW CHARTS
+        // --- DASHBOARD VIEW CHARTS (DIPERBAIKI) ---
+        {% if view == 'dashboard' %}
+        
+        // 1. Load Forecast (Line) - Axis Terlihat & Ada Titik Data
+        new Chart(document.getElementById('loadChart'), {
+            type: 'line',
+            data: {
+                labels: {{ smart.load_forecast.labels | safe }},
+                datasets: [{
+                    label: 'Load (kW)',
+                    data: {{ smart.load_forecast.data | safe }},
+                    borderColor: '#a855f7', // Ungu Terang
+                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,         // Titik data terlihat
+                    pointHoverRadius: 6,    // Titik membesar saat di-hover
+                    pointBackgroundColor: '#e879f9',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: {
+                        display: true, // Tampilkan Axis X (Jam)
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8', font: {size: 10} }
+                    },
+                    y: {
+                        display: true, // Tampilkan Axis Y (kW)
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8', font: {size: 10} }
+                    }
+                }
+            }
+        });
+
+        // 2. Availability (Bar) - Axis Terlihat
+        new Chart(document.getElementById('availChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+                datasets: [{
+                    label: 'Probability (%)',
+                    data: {{ smart.availability.data | safe }},
+                    backgroundColor: '#3b82f6', // Biru
+                    borderRadius: 4,
+                    hoverBackgroundColor: '#60a5fa'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        display: true, // Tampilkan Axis X (Hari)
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y: {
+                        display: true, // Tampilkan Axis Y (%)
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        max: 100
+                    }
+                }
+            }
+        });
+        {% endif %}
+
+        // 2. TRANSACTIONS VIEW CHARTS
+        {% if view == 'transactions' %}
+        // Bar Chart
+        const cpLabels = [{% for k,v in analytics.kwh_by_cp.items() %}"{{k}}",{% endfor %}];
+        const cpData = [{% for k,v in analytics.kwh_by_cp.items() %}{{v}},{% endfor %}];
+        
+        new Chart(document.getElementById('kwhBarChart'), {
+            type: 'bar',
+            data: {
+                labels: cpLabels,
+                datasets: [{ label: 'Total kWh', data: cpData, backgroundColor: '#6366f1', borderRadius: 6 }]
+            },
+            options: { maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: { y: {grid: {color: '#334155'}} } }
+        });
+
+        // Line Chart
+        const dayLabels = [{% for k,v in analytics.daily_usage.items() %}"{{k}}",{% endfor %}];
+        const dayData = [{% for k,v in analytics.daily_usage.items() %}{{v}},{% endfor %}];
+        
+        new Chart(document.getElementById('dailyLineChart'), {
+            type: 'line',
+            data: {
+                labels: dayLabels,
+                datasets: [{ label: 'kWh Usage', data: dayData, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 }]
+            },
+            options: { maintainAspectRatio: false, scales: { y: {grid: {color: '#334155'}} } }
+        });
+        {% endif %}
+
+        // 3. STATIONS VIEW CHARTS
+        {% if view == 'stations' %}
+        // Scatter Plot
+        const scatterRaw = {{ analytics.scatter_data | tojson }};
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        new Chart(document.getElementById('scatterChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Charging Sessions',
+                    data: scatterRaw,
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', position: 'bottom', title: {display: true, text: 'Hour of Day (0-24)', color:'#94a3b8'}, min: 0, max: 24, grid: {color: '#334155'} },
+                    y: { 
+                        type: 'linear', 
+                        min: -0.5, max: 6.5, 
+                        ticks: { callback: function(value) { return days[value]; }, color:'#94a3b8' },
+                        grid: {color: '#334155'}
+                    }
+                },
+                plugins: { legend: {display: false} }
+            }
+        });
+        {% endif %}
+        // --- AI INSIGHTS VIEW CHARTS ---
+        {% if view == 'ai_insights' %}
+        
+        // 1. Detailed Load Forecast (Area Chart with Gradient)
+        const ctxAiLoad = document.getElementById('aiLoadChart').getContext('2d');
+        const gradientLoad = ctxAiLoad.createLinearGradient(0, 0, 0, 400);
+        gradientLoad.addColorStop(0, 'rgba(168, 85, 247, 0.4)'); // Purple top
+        gradientLoad.addColorStop(1, 'rgba(168, 85, 247, 0.0)'); // Transparent bottom
+
+        new Chart(ctxAiLoad, {
+            type: 'line',
+            data: {
+                labels: {{ smart.load_forecast.labels | safe }},
+                datasets: [{
+                    label: 'Predicted Load (kW)',
+                    data: {{ smart.load_forecast.data | safe }},
+                    borderColor: '#a855f7',
+                    backgroundColor: gradientLoad,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#1e293b',
+                    pointBorderColor: '#a855f7',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        backgroundColor: '#1e293b',
+                        borderColor: '#4b5563',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: '#334155', drawBorder: false },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y: {
+                        grid: { color: '#334155', borderDash: [5, 5] },
+                        ticks: { color: '#94a3b8' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // 2. Health Donut Chart
+        new Chart(document.getElementById('aiHealthChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Healthy', 'Risk'],
+                datasets: [{
+                    data: [{{ smart.health_status.score }}, 100 - {{ smart.health_status.score }}],
+                    backgroundColor: ['#22c55e', '#334155'], // Green & Dark Grey
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                cutout: '80%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // 3. Availability Bar Chart
+        new Chart(document.getElementById('aiAvailChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+                datasets: [{
+                    label: 'Availability Probability (%)',
+                    data: {{ smart.availability.data | safe }},
+                    backgroundColor: (ctx) => {
+                        const v = ctx.raw;
+                        // Color coding: High availability (Green), Low (Blue), Very Low (Purple)
+                        return v > 70 ? '#3b82f6' : (v > 40 ? '#6366f1' : '#a855f7');
+                    },
+                    borderRadius: 6,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' }, max: 100 }
+                }
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>

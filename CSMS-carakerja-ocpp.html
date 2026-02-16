@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi Simulator OCPP 1.6</title>
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Gaya kustom untuk font di dalam canvas (Tailwind tidak memengaruhi canvas) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        canvas {
+            background-color: #1a202c; /* bg-gray-900 */
+            display: block; /* Memastikan kanvas mengambil lebar penuh */
+            aspect-ratio: 2 / 1; /* Menjaga rasio 2:1 (dari 1200x600) */
+        }
+    </style>
+</head>
+<body class="bg-gray-800 text-white min-h-screen flex flex-col items-center justify-center p-4">
+
+    <h1 class="text-3xl font-bold mb-4 text-center">Ilustrasi Alur Kerja OCPP 1.6</h1>
+    <p class="text-gray-400 mb-4 text-center max-w-2xl">Ini adalah visualisasi dari skrip `simulator_cp2.py`. Klik "Mulai Simulasi" untuk melihat alur pesan antara Charge Point (Client) dan CSMS (Server).</p>
+
+    <!-- Kontainer Canvas -->
+    <div class="w-full max-w-5xl bg-gray-900 rounded-lg shadow-2xl overflow-hidden">
+        <!-- Menghapus width/height tetap, menambahkan class w-full -->
+        <canvas id="ocppCanvas" class="w-full"></canvas>
+    </div>
+
+    <!-- Tombol Kontrol -->
+    <div class="flex space-x-4 mt-6">
+        <button id="startButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all shadow-lg transform hover:scale-105">
+            Mulai Simulasi
+        </button>
+        <button id="resetButton" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition-all shadow-lg transform hover:scale-105" disabled>
+            Reset
+        </button>
+    </div>
+
+    <!-- Log Status -->
+    <div class="w-full max-w-5xl mt-6">
+        <h2 class="text-xl font-semibold mb-2">Log Simulasi:</h2>
+        <div id="statusLog" class="bg-gray-900 rounded-lg shadow-inner h-48 overflow-y-auto p-4 font-mono text-sm text-gray-300">
+            <p>Menunggu simulasi dimulai...</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('ocppCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        const statusLog = document.getElementById('statusLog');
+
+        // Posisi dan ukuran elemen (dibuat dinamis)
+        let CP_X, CSMS_X, Y_LEVEL, BOX_WIDTH, BOX_HEIGHT;
+
+        let messages = [];
+        let cpStatus = "Offline";
+        let heartbeatInterval = null;
+        let simulationRunning = false;
+
+        // --- Kelas untuk Pesan Animasi ---
+        class Message {
+            constructor(text, fromX, toX, y, isResponse = false, isHeartbeat = false) {
+                this.text = text;
+                this.x = fromX;
+                this.y = y;
+                this.targetX = toX;
+                this.isResponse = isResponse;
+                this.isHeartbeat = isHeartbeat;
+                // Kecepatan relatif terhadap lebar canvas
+                this.speed = canvas.width * 0.0035; 
+
+                // Font dinamis untuk pengukuran
+                const baseFont = Math.max(12, canvas.width / 90);
+                ctx.font = this.isHeartbeat ? `${baseFont * 0.9}px Inter` : `bold ${baseFont}px Inter`;
+                
+                // Lebar dan tinggi dinamis
+                this.width = ctx.measureText(text).width + (canvas.width * 0.015);
+                const baseHeight = canvas.height * 0.06;
+                this.height = isHeartbeat ? baseHeight * 0.7 : baseHeight;
+            }
+
+            update() {
+                // Pastikan kecepatan diperbarui jika canvas di-resize
+                this.speed = canvas.width * 0.0035;
+                if (this.isResponse) {
+                    this.x -= this.speed;
+                } else {
+                    this.x += this.speed;
+                }
+            }
+
+            draw() {
+                // Teks dinamis
+                const baseFont = Math.max(12, canvas.width / 90);
+                ctx.font = this.isHeartbeat ? `${baseFont * 0.9}px Inter` : `bold ${baseFont}px Inter`;
+                
+                // Latar belakang kotak pesan
+                if (this.isResponse) {
+                    ctx.fillStyle = "#2F855A"; // Hijau (Respons)
+                } else if (this.isHeartbeat) {
+                    ctx.fillStyle = "#B83280"; // Pink (Heartbeat)
+                } else {
+                    ctx.fillStyle = "#2B6CB0"; // Biru (Request)
+                }
+                
+                // Gambar bayangan
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                // Gambar kotak
+                ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+                
+                // Reset bayangan
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                
+                // Teks
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(this.text, this.x, this.y);
+            }
+
+            isDone() {
+                if (this.isResponse) {
+                    return this.x <= this.targetX;
+                } else {
+                    return this.x >= this.targetX;
+                }
+            }
+        }
+
+        // --- Fungsi Helper ---
+
+        function log(message) {
+            const p = document.createElement('p');
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            statusLog.appendChild(p);
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function updateCpStatus(newStatus) {
+            cpStatus = newStatus;
+        }
+
+        function createMessage(text, from, to, isResponse = false, isHeartbeat = false) {
+            let y = Y_LEVEL;
+            if (isHeartbeat) {
+                y = Y_LEVEL + (canvas.height * 0.1); // Jalur berbeda (dinamis)
+            }
+            const margin = canvas.width * 0.01; // Margin dinamis
+            const fromX = (from === 'cp') ? CP_X + BOX_WIDTH / 2 + margin : CSMS_X - BOX_WIDTH / 2 - margin;
+            const toX = (to === 'csms') ? CSMS_X - BOX_WIDTH / 2 - margin : CP_X + BOX_WIDTH / 2 + margin;
+            messages.push(new Message(text, fromX, toX, y, isResponse, isHeartbeat));
+        }
+
+        function startHeartbeatLoop() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (simulationRunning) {
+                    createMessage("Heartbeat", 'cp', 'csms', false, true);
+                }
+            }, 5000); // Kirim heartbeat setiap 5 detik
+        }
+
+        function stopHeartbeatLoop() {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
+
+        // --- Fungsi Resize ---
+        function resizeCanvas() {
+            // Set resolusi canvas agar sesuai dengan ukuran CSS-nya
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            // Update variabel layout dinamis
+            Y_LEVEL = canvas.height / 2;
+            BOX_WIDTH = canvas.width * 0.18; // 18% dari lebar
+            BOX_HEIGHT = BOX_WIDTH * 0.8; // Menjaga proporsi kotak
+            
+            // Posisikan kotak di 22% dan 78%
+            CP_X = canvas.width * 0.22; 
+            CSMS_X = canvas.width * 0.78;
+        }
+
+
+        // --- Fungsi Menggambar Utama ---
+
+        function drawBox(x, y, width, height, title, color, status = null) {
+            // Gambar bayangan kotak
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 5;
+
+            // Gambar kotak utama
+            ctx.fillStyle = color;
+            ctx.fillRect(x - width / 2, y - height / 2, width, height);
+
+            // Reset bayangan
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+
+            // Judul Kotak (font dinamis)
+            ctx.fillStyle = "white";
+            ctx.font = `bold ${Math.max(16, canvas.width / 60)}px Inter`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(title, x, y - height / 2 + (height * 0.2)); // Posisi Y dinamis
+
+            // Garis pemisah
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - width / 2 + 20, y - height / 2 + (height * 0.4)); // Posisi Y dinamis
+            ctx.lineTo(x + width / 2 - 20, y - height / 2 + (height * 0.4));
+            ctx.stroke();
+
+            // Teks Status (jika ada)
+            if (status) {
+                ctx.font = `normal ${Math.max(12, canvas.width / 75)}px Inter`; // Font dinamis
+                ctx.fillText("Status:", x, y + (height * 0.1)); // Posisi Y dinamis
+                
+                // Warna status berdasarkan status
+                if (status === "Charging") ctx.fillStyle = "#38A169"; // Hijau
+                else if (status === "Available") ctx.fillStyle = "#3182CE"; // Biru
+                else if (status === "Preparing" || status === "Finishing") ctx.fillStyle = "#D69E2E"; // Kuning
+                else if (status === "Offline") ctx.fillStyle = "#E53E3E"; // Merah
+                else ctx.fillStyle = "white";
+
+                ctx.font = `bold ${Math.max(14, canvas.width / 66)}px Inter`; // Font dinamis
+                ctx.fillText(status, x, y + (height * 0.3)); // Posisi Y dinamis
+            }
+        }
+
+        function drawInitialState() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Gambar Charge Point (Client)
+            drawBox(CP_X, Y_LEVEL, BOX_WIDTH, BOX_HEIGHT, "Simulator CP", "#4A5568", cpStatus);
+            
+            // Gambar CSMS (Server)
+            drawBox(CSMS_X, Y_LEVEL, BOX_WIDTH, BOX_HEIGHT, "CSMS Server", "#4A5568");
+            
+            // Gambar koneksi (garis putus-putus)
+            ctx.strokeStyle = "#718096"; // Gray
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(CP_X + BOX_WIDTH / 2, Y_LEVEL);
+            ctx.lineTo(CSMS_X - BOX_WIDTH / 2, Y_LEVEL);
+            ctx.stroke();
+            
+            // Garis Heartbeat
+            ctx.strokeStyle = "#A0AEC0"; // Gray
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(CP_X + BOX_WIDTH / 2, Y_LEVEL + (canvas.height * 0.1)); // Posisi Y dinamis
+            ctx.lineTo(CSMS_X - BOX_WIDTH / 2, Y_LEVEL + (canvas.height * 0.1));
+            ctx.stroke();
+            
+            ctx.setLineDash([]); // Reset
+        }
+
+        // --- Loop Animasi ---
+        function animate() {
+            // Selalu gambar ulang state dasar (membersihkan frame sebelumnya)
+            drawInitialState();
+
+            // Gambar ulang elemen dengan status baru (posisi diperbarui oleh resize)
+            drawBox(CP_X, Y_LEVEL, BOX_WIDTH, BOX_HEIGHT, "Simulator CP", "#2D3748", cpStatus);
+            drawBox(CSMS_X, Y_LEVEL, BOX_WIDTH, BOX_HEIGHT, "CSMS Server", "#2D3748");
+
+            // Update dan gambar semua pesan
+            for (let i = messages.length - 1; i >= 0; i--) {
+                const msg = messages[i];
+                msg.update();
+                msg.draw();
+
+                if (msg.isDone()) {
+                    messages.splice(i, 1); // Hapus pesan jika sudah sampai
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Logika Simulasi Utama ---
+        async function runSimulation() {
+            simulationRunning = true;
+            startButton.disabled = true;
+            resetButton.disabled = false;
+            statusLog.innerHTML = ""; // Bersihkan log
+            
+            // Pastikan ukuran canvas sudah benar sebelum mulai
+            resizeCanvas(); 
+
+            // 1. BootNotification
+            log("Simulator dinyalakan. Mengirim BootNotification...");
+            updateCpStatus("Booting");
+            createMessage("BootNotification", 'cp', 'csms');
+            await sleep(2000); // Waktu untuk pesan bergerak & diproses
+            
+            createMessage("BootNotification.conf (Accepted)", 'csms', 'cp', true);
+            log("BootNotification Diterima (Accepted).");
+            
+            // 2. Mulai Heartbeat
+            log("Memulai pengiriman Heartbeat...");
+            startHeartbeatLoop();
+            await sleep(1500);
+
+            // 3. Authorize
+            log("Mengirim Authorize (DEMO-123)...");
+            updateCpStatus("Authorizing");
+            createMessage("Authorize", 'cp', 'csms');
+            await sleep(2000);
+            
+            createMessage("Authorize.conf (Accepted)", 'csms', 'cp', true);
+            log("Otorisasi Berhasil (Accepted).");
+            await sleep(1000);
+
+            // 4. Status: Available
+            log("Status berubah: Available");
+            updateCpStatus("Available");
+            createMessage("StatusNotification (Available)", 'cp', 'csms');
+            await sleep(1500); // Sesuai skrip (5s, dipercepat)
+
+            // 5. Status: Preparing
+            log("Kabel terpasang. Status: Preparing");
+            updateCpStatus("Preparing");
+            createMessage("StatusNotification (Preparing)", 'cp', 'csms');
+            await sleep(1500); // Sesuai skrip (5s, dipercepat)
+
+            // 6. StartTransaction
+            log("Memulai transaksi...");
+            createMessage("StartTransaction", 'cp', 'csms');
+            await sleep(2000);
+            
+            createMessage("StartTransaction.conf (tx_id: 123)", 'csms', 'cp', true);
+            log("Transaksi dimulai. Menerima tx_id: 123.");
+            await sleep(1000);
+
+            // 7. Status: Charging
+            log("Status berubah: Charging");
+            updateCpStatus("Charging");
+            createMessage("StatusNotification (Charging)", 'cp', 'csms');
+            
+            // 8. Simulasi Mengisi Daya
+            log("Mengisi daya... (Simulasi 3 detik, di skrip 10 detik)");
+            await sleep(3000); // Sesuai skrip (10s, dipercepat)
+
+            // 9. Status: Finishing
+            log("Pengisian selesai. Status: Finishing");
+            updateCpStatus("Finishing");
+            createMessage("StatusNotification (Finishing)", 'cp', 'csms');
+            await sleep(1500);
+
+            // 10. StopTransaction
+            log("Mengirim StopTransaction (meter: 1000)...");
+            createMessage("StopTransaction", 'cp', 'csms');
+            await sleep(2000);
+            
+            createMessage("StopTransaction.conf", 'csms', 'cp', true);
+            log("Transaksi dihentikan.");
+            await sleep(1000);
+
+            // 11. Status: Available (Kembali)
+            log("Status kembali: Available");
+            updateCpStatus("Available");
+            createMessage("StatusNotification (Available)", 'cp', 'csms');
+            await sleep(1500);
+
+            log("Simulasi selesai. CP tetap online (Heartbeat aktif).");
+            simulationRunning = false;
+            startButton.disabled = false; // Izinkan mulai lagi
+        }
+
+        // --- Fungsi Reset ---
+        function resetSimulation() {
+            simulationRunning = false;
+            stopHeartbeatLoop();
+            messages = [];
+            updateCpStatus("Offline");
+            statusLog.innerHTML = "<p>Simulasi di-reset. Menunggu simulasi dimulai...</p>";
+            startButton.disabled = false;
+            resetButton.disabled = true;
+            resizeCanvas(); // Pastikan tampilan reset juga responsif
+        }
+
+        // --- Event Listeners ---
+        startButton.addEventListener('click', runSimulation);
+        resetButton.addEventListener('click', resetSimulation);
+        // Tambahkan listener untuk resize window
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- Mulai ---
+        resizeCanvas(); // Panggil pertama kali untuk set ukuran awal
+        drawInitialState(); // Gambar kondisi awal
+        animate(); // Mulai loop animasi
+    </script>
+
+</body>
+</html>
+

@@ -1,0 +1,77 @@
+services:
+  # --- SERVICE BARU: DATABASE LOKAL ---
+  db:
+    image: mariadb:10.6
+    container_name: ocpp-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=energypass
+      - MYSQL_DATABASE=ocpp
+      - MYSQL_USER=energy
+      - MYSQL_PASSWORD=energypass
+    volumes:
+      # Otomatis import file SQL Anda ke dalam database saat pertama kali jalan
+      - ./CSMS-mysql-database-ocpp.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+
+  # --- SERVER OCPP ---
+  ocpp-server:
+    build: ./ocpp-server
+    container_name: ocpp-server
+    environment:
+      - DB_HOST=db        # Konek ke service 'db' di atas (bukan IP 192.168...)
+      - DB_USER=energy
+      - DB_PASS=energypass
+      - DB_NAME=ocpp
+    ports:
+      - "9000:9000"
+    depends_on:
+      - db                # Tunggu database siap dulu
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+
+  # --- API SERVICE ---
+  api-service:
+    build: ./api-service
+    container_name: ocpp-api
+    environment:
+      - DB_HOST=db        # Konek ke service 'db'
+      - DB_USER=energy
+      - DB_PASS=energypass
+      - DB_NAME=ocpp
+    depends_on:
+      - ocpp-server
+    ports:
+      - "5050:8000"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+
+  # --- DASHBOARD ---
+  dashboard:
+    build: ./dashboard
+    container_name: ocpp-dashboard
+    environment:
+      - API_URL=http://api-service:8000
+    depends_on:
+      - api-service
+    ports:
+      - "3500:8080"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+
+  # --- ML SERVICE ---
+  ml-service:
+    build: ./ml-service
+    container_name: ocpp-ml
+    environment:
+      - DB_HOST=db
+      - DB_USER=energy
+      - DB_PASS=energypass
+      - DB_NAME=ocpp
+    depends_on:
+      - db
+    ports:
+      - "8001:8001"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./ml-service/models:/app/models  # Persist models

@@ -1,0 +1,43 @@
+services:
+  ocpp-server:
+    build: ./ocpp-server
+    container_name: ocpp-server
+    environment:
+      - DB_HOST=192.168.10.80
+      - DB_USER=energy
+      - DB_PASS=energypass
+      - DB_NAME=ocpp
+    ports:
+      - "9000:9000"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+  api-service:
+    build: ./api-service
+    container_name: ocpp-api
+    environment:
+      - DB_HOST=192.168.10.80
+      - DB_USER=energy
+      - DB_PASS=energypass
+      - DB_NAME=ocpp
+    depends_on:
+      - ocpp-server
+    ports:
+      - "5050:8000"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+  dashboard:
+    build: ./dashboard
+    container_name: ocpp-dashboard
+    environment:
+      - API_URL=http://api-service:8000   # tetap internal antar container
+    depends_on:
+      - api-service
+    ports:
+      - "3500:8080"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
