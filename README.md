@@ -204,6 +204,7 @@ docker-compose up --build -d
 | REST API | http://localhost:5050/cps |
 | OCPP WebSocket | ws://localhost:9000/{CP_ID} |
 | ML Service | http://localhost:8001/docs |
+| User Access | tpt111.netlify.app |
 
 ### 3. Run Simulator (Test)
 ```bash
